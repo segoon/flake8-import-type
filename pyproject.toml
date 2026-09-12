@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flake8-import-type"
+version = "0.1.0"
+description = "A Flake8 plugin that rejects direct imports of types and functions"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+dependencies = ["flake8>=7.0"]
+classifiers = [
+    "Framework :: Flake8",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.entry-points."flake8.extension"]
+RUF105 = "flake8_import_type:ImportTypeChecker"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "RUF", "UP"]
