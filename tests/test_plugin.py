@@ -216,8 +216,10 @@ def test_import_location_without_alias_positions() -> None:
     import_node = tree.body[0]
     assert isinstance(import_node, ast.ImportFrom)
     for alias in import_node.names:
-        del alias.lineno
-        del alias.col_offset
+        if hasattr(alias, "lineno"):
+            del alias.lineno
+        if hasattr(alias, "col_offset"):
+            del alias.col_offset
 
     results = ImportTypeChecker(tree, source.splitlines(keepends=True)).run()
 
