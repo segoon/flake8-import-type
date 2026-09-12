@@ -11,8 +11,10 @@ from flake8_import_type import ImportTypeChecker
 
 
 def check(source: str) -> list[tuple[int, int, str]]:
-    tree = ast.parse(textwrap.dedent(source))
-    return [result[:3] for result in ImportTypeChecker(tree).run()]
+    source = textwrap.dedent(source)
+    tree = ast.parse(source)
+    lines = source.splitlines(keepends=True)
+    return [result[:3] for result in ImportTypeChecker(tree, lines).run()]
 
 
 def error(line: int, column: int, name: str, module: str) -> tuple[int, int, str]:
@@ -206,6 +208,20 @@ def test_relative_import_keeps_the_import_level() -> None:
         Factory()
         """
     ) == [error(2, 22, "Factory", "..package")]
+
+
+def test_import_location_without_alias_positions() -> None:
+    source = "from package import (\n    First,\n    Second as Alias,\n)\nAlias()\n"
+    tree = ast.parse(source)
+    import_node = tree.body[0]
+    assert isinstance(import_node, ast.ImportFrom)
+    for alias in import_node.names:
+        del alias.lineno
+        del alias.col_offset
+
+    results = ImportTypeChecker(tree, source.splitlines(keepends=True)).run()
+
+    assert [result[:3] for result in results] == [error(3, 4, "Alias", "package")]
 
 
 @pytest.mark.skipif(sys.version_info < (3, 12), reason="requires Python 3.12")

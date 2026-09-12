@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import ast
+import tokenize
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from importlib.metadata import version
+from io import StringIO
 from typing import Any
 
 _PACKAGE_NAME = "flake8-import-type"
@@ -25,7 +27,8 @@ _FUNCTION_SCOPES = frozenset({"comprehension", "function", "lambda"})
 @dataclass
 class _ImportBinding:
     module: str
-    alias: ast.alias
+    line: int
+    column: int
     name: str
     reported: bool = False
 
@@ -128,9 +131,19 @@ class _LocalBindingCollector(ast.NodeVisitor):
 
 
 class _ImportTypeVisitor(ast.NodeVisitor):
-    def __init__(self) -> None:
+    def __init__(self, lines: list[str] | None = None) -> None:
         self._scope = _Scope(kind="module", parent=None)
+        self._tokens = self._tokenize(lines)
         self.errors: list[tuple[int, int, str]] = []
+
+    @staticmethod
+    def _tokenize(lines: list[str] | None) -> list[tokenize.TokenInfo]:
+        if lines is None:
+            return []
+        try:
+            return list(tokenize.generate_tokens(StringIO("".join(lines)).readline))
+        except tokenize.TokenError:
+            return []
 
     @staticmethod
     def _arguments(arguments: ast.arguments) -> Iterable[ast.arg]:
@@ -199,12 +212,50 @@ class _ImportTypeVisitor(ast.NodeVisitor):
         imported.reported = True
         self.errors.append(
             (
-                imported.alias.lineno,
-                imported.alias.col_offset,
+                imported.line,
+                imported.column,
                 f"{_ERROR_CODE} Importing type/function `{imported.name}` "
                 f"from module `{imported.module}`.",
             )
         )
+
+    def _import_positions(self, node: ast.ImportFrom) -> list[tuple[int, int]]:
+        positions = [(node.lineno, node.col_offset)] * len(node.names)
+        if all(hasattr(alias, "lineno") for alias in node.names):
+            return [(alias.lineno, alias.col_offset) for alias in node.names]
+        if not self._tokens:
+            return positions
+
+        after_import = False
+        alias_index = 0
+        skip_asname: str | None = None
+        for current in self._tokens:
+            if current.start < (node.lineno, node.col_offset):
+                continue
+            if not after_import:
+                if current.type == tokenize.NAME and current.string == "import":
+                    after_import = True
+                continue
+            if alias_index >= len(node.names):
+                break
+            if skip_asname is not None:
+                if current.type == tokenize.NAME and current.string == skip_asname:
+                    skip_asname = None
+                continue
+
+            alias = node.names[alias_index]
+            matches_name = (
+                current.type == tokenize.NAME and current.string == alias.name
+            )
+            matches_star = (
+                current.type == tokenize.OP and current.string == alias.name == "*"
+            )
+            if matches_name or matches_star:
+                positions[alias_index] = current.start
+                alias_index += 1
+                skip_asname = alias.asname
+
+        return positions
 
     @staticmethod
     def _subscript_name(node: ast.expr) -> str | None:
@@ -370,11 +421,14 @@ class _ImportTypeVisitor(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         module = "." * node.level + (node.module or "")
-        for alias in node.names:
+        for alias, (line, column) in zip(node.names, self._import_positions(node)):
             if alias.name == "*":
                 continue
             name = alias.asname or alias.name
-            self._bind(name, _ImportBinding(module=module, alias=alias, name=name))
+            self._bind(
+                name,
+                _ImportBinding(module=module, line=line, column=column, name=name),
+            )
 
     def visit_Call(self, node: ast.Call) -> None:
         if isinstance(node.func, ast.Name):
@@ -490,11 +544,12 @@ class ImportTypeChecker:
     name = _PACKAGE_NAME
     version = version(_PACKAGE_NAME)
 
-    def __init__(self, tree: ast.AST) -> None:
+    def __init__(self, tree: ast.AST, lines: list[str] | None = None) -> None:
         self._tree = tree
+        self._lines = lines
 
     def run(self) -> Iterator[tuple[int, int, str, type[Any]]]:
-        visitor = _ImportTypeVisitor()
+        visitor = _ImportTypeVisitor(self._lines)
         visitor.visit(self._tree)
         for line, column, message in sorted(visitor.errors):
             yield line, column, message, type(self)
