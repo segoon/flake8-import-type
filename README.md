@@ -1,8 +1,7 @@
 # flake8-import-type
 
-`flake8-import-type` ports Ruff rule `RUF105` to Flake8. It reports direct
-imports that are later used as functions, types in annotations, or class
-bases:
+`flake8-import-type` reports direct imports that are later used as functions,
+types in annotations, or class bases:
 
 ```python
 from pathlib import Path
