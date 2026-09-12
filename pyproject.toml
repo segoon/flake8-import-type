@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,19 +9,43 @@ description = "A Flake8 plugin that rejects direct imports of types and function
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Vasiliy Kulikov" },
+]
+keywords = ["flake8", "imports", "lint", "typing"]
 dependencies = ["flake8>=7.0"]
 classifiers = [
+    "Environment :: Console",
     "Framework :: Flake8",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Quality Assurance",
 ]
 
+[project.urls]
+Homepage = "https://github.com/segoon/flake8-import-type"
+Repository = "https://github.com/segoon/flake8-import-type.git"
+Issues = "https://github.com/segoon/flake8-import-type/issues"
+Changelog = "https://github.com/segoon/flake8-import-type/releases"
+
 [project.entry-points."flake8.extension"]
-RUF105 = "flake8_import_type:ImportTypeChecker"
+IMT = "flake8_import_type:ImportTypeChecker"
 
 [dependency-groups]
 dev = [
+    "build>=1.3",
     "pytest>=8.0",
+    "ruff>=0.13",
+    "twine>=6.2",
 ]
 
 [tool.pytest.ini_options]
