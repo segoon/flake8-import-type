@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flake8-import-type"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Flake8 plugin that rejects direct imports of types and functions"
 readme = "README.md"
 requires-python = ">=3.9"
