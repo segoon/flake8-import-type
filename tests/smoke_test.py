@@ -4,7 +4,7 @@ import subprocess
 import sys
 from importlib.metadata import version
 
-assert version("flake8-import-type") == "0.1.0"
+assert version("flake8-import-type") == "0.1.1"
 
 result = subprocess.run(
     [sys.executable, "-m", "flake8", "--isolated", "--select", "IMT001", "-"],

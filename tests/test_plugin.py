@@ -253,4 +253,4 @@ def test_flake8_discovers_plugin() -> None:
 
 
 def test_plugin_version_comes_from_package_metadata() -> None:
-    assert ImportTypeChecker.version == "0.1.0"
+    assert ImportTypeChecker.version == "0.1.1"
