@@ -266,6 +266,8 @@ class _ImportTypeVisitor(ast.NodeVisitor):
         return None
 
     def _check_type_expression(self, node: ast.AST) -> None:
+        if isinstance(node, ast.Attribute):
+            return
         if isinstance(node, ast.Name):
             self._check_name(node.id)
             return
