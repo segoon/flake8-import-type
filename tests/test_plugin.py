@@ -253,4 +253,37 @@ def test_flake8_discovers_plugin() -> None:
 
 
 def test_plugin_version_comes_from_package_metadata() -> None:
-    assert ImportTypeChecker.version == "0.1.2"
+    assert ImportTypeChecker.version == "0.1.3"
+
+
+@pytest.mark.parametrize(
+    "usage",
+    [
+        "value: module.Type",
+        "value: list[module.Type]",
+        'value: "module.Type"',
+        'value: "list[module.Type]"',
+        "class Child(module.Base): pass",
+        "class Child(module.Base[int]): pass",
+        "class Child(metaclass=module.Meta): pass",
+        "@module.decorator\ndef function(): pass",
+        "module.Factory()",
+    ],
+)
+def test_ignores_module_qualified_names(usage: str) -> None:
+    assert check("from package import module\n" + usage + "\n") == []
+
+
+def test_reports_direct_type_arguments_of_qualified_generics() -> None:
+    assert check(
+        "from package import module, DirectType\n"
+        "value: module.Container[DirectType]\n"
+    ) == [error(1, 28, "DirectType", "package")]
+
+
+@pytest.mark.skipif(sys.version_info < (3, 12), reason="requires Python 3.12")
+def test_qualified_type_alias_preserves_direct_type_checks() -> None:
+    assert check(
+        "from package import module, DirectType\n"
+        "type Items = module.Container[DirectType]\n"
+    ) == [error(1, 28, "DirectType", "package")]
